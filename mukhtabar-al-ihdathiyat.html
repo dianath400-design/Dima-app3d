@@ -1,0 +1,932 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<style>:root{color-scheme:light}body{margin:0}[hidden]{display:none!important}img{max-width:100%}</style>
+<title>مختبر الإحداثيات</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600&family=IBM+Plex+Sans+Arabic:wght@400;500;600&family=Reem+Kufi:wght@500;700&display=swap">
+<style>
+/* Layout: drafting table. A 3D axes stage beside a question sheet; levels listed like lab entries. */
+:root{
+  --bg:#E9EFF6; --surface:#FFFFFF; --surface2:#F2F6FB; --fg:#13233F; --muted:#56667F; --line:#C7D3E2; --grid:rgba(19,35,63,.06);
+  --accent:#BF530A; --accent-fg:#FFFFFF; --accent-soft:rgba(191,83,10,.12);
+  --x:#CC3A47; --y:#23895C; --z:#3265D2;
+  --good:#17784B; --good-bg:#DDF2E7; --bad:#B83232; --bad-bg:#F8E1E1;
+  --f-display:'Reem Kufi','IBM Plex Sans Arabic',sans-serif;
+  --f-body:'IBM Plex Sans Arabic','Segoe UI',Tahoma,sans-serif;
+  --f-mono:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0C1424; --surface:#131E34; --surface2:#182540; --fg:#E6EDF8; --muted:#93A3BF; --line:#2A3A58; --grid:rgba(230,237,248,.055);
+    --accent:#FF9340; --accent-fg:#1B1000; --accent-soft:rgba(255,147,64,.16);
+    --x:#FF6B77; --y:#4CD08F; --z:#6E9BFF;
+    --good:#4CD08F; --good-bg:#10301F; --bad:#FF7F7F; --bad-bg:#3A1A1F;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0C1424; --surface:#131E34; --surface2:#182540; --fg:#E6EDF8; --muted:#93A3BF; --line:#2A3A58; --grid:rgba(230,237,248,.055);
+  --accent:#FF9340; --accent-fg:#1B1000; --accent-soft:rgba(255,147,64,.16);
+  --x:#FF6B77; --y:#4CD08F; --z:#6E9BFF;
+  --good:#4CD08F; --good-bg:#10301F; --bad:#FF7F7F; --bad-bg:#3A1A1F;
+  color-scheme:dark;
+}
+
+*{box-sizing:border-box}
+body{
+  background-color:var(--bg);
+  background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);
+  background-size:28px 28px;
+  color:var(--fg);
+  font:400 16px/1.75 var(--f-body);
+  padding-block:20px 48px;
+  padding-left:max(16px,env(safe-area-inset-left,0px));
+  padding-right:max(16px,env(safe-area-inset-right,0px));
+}
+.app{max-width:1120px;margin-inline:auto}
+h1,h2,h3{font-family:var(--f-display);font-weight:700;line-height:1.35;text-wrap:balance;margin:0}
+p{margin:0}
+button{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.ltr{font-family:var(--f-mono);font-weight:500;direction:ltr;unicode-bidi:isolate;white-space:nowrap}
+
+/* buttons */
+.btn{min-height:44px;padding:8px 18px;border-radius:8px;border:1.5px solid var(--line);background:var(--surface);cursor:pointer;font-weight:500;transition:border-color .15s,background .15s}
+.btn:hover{border-color:var(--accent)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-fg);font-weight:600}
+.btn.primary:hover{filter:brightness(1.07)}
+.btn.ghost{background:transparent}
+.btn.small{min-height:36px;padding:4px 12px;font-size:.9rem}
+
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:18px;min-width:0}
+
+/* menu */
+.hero{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:28px;align-items:center;margin-bottom:34px}
+.eyebrow{color:var(--accent);font-weight:600;font-size:.95rem;margin-bottom:6px}
+.hero h1{font-size:clamp(2.4rem,6vw,3.6rem)}
+.lead{margin-top:14px;max-width:34em;color:var(--muted);font-size:1.05rem}
+.rules{list-style:none;padding:0;margin:20px 0 0;display:flex;flex-wrap:wrap;gap:8px 22px;font-size:.95rem}
+.rules li{display:flex;align-items:center;gap:8px}
+.rules li::before{content:"";width:8px;height:8px;border:2px solid var(--accent);border-radius:50%}
+.stage{position:relative;width:100%;aspect-ratio:1/.88;max-height:72vh}
+.stage canvas{position:absolute;inset:0;width:100%;height:100%;display:block;cursor:grab;touch-action:pan-y}
+.stage canvas:active{cursor:grabbing}
+.hero .stage{background:var(--surface);border:1px solid var(--line);border-radius:12px}
+.section-title{font-size:1.4rem;margin-bottom:14px}
+.levels{list-style:none;padding:0;margin:0;display:grid;gap:12px}
+.level{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:16px;align-items:center;padding:16px 18px;background:var(--surface);border:1px solid var(--line);border-radius:12px}
+.lv-no{width:46px;height:46px;border-radius:50%;border:2px solid var(--accent);display:grid;place-items:center;font:600 1.3rem var(--f-mono);color:var(--accent)}
+.lv-no.free{border-color:var(--z);color:var(--z)}
+.lv-body h3{font-size:1.2rem}
+.lv-body p{color:var(--muted);font-size:.95rem;margin-top:2px}
+.lv-body .best{margin-top:6px;font-size:.88rem;color:var(--fg);font-weight:500}
+.explore-row{margin-top:12px}
+
+/* play */
+.topbar{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center;justify-content:space-between}
+.tb-level{font-family:var(--f-display);font-weight:700;font-size:1.15rem}
+.tb-stats{display:flex;align-items:center;gap:18px;font-weight:500}
+.tb-stats b{font-family:var(--f-mono);font-size:1.15rem;margin-inline-start:4px}
+.lives{display:flex;gap:6px;align-items:center}
+.lives::before{content:"المحاولات";margin-inline-end:4px}
+.pip{width:14px;height:14px;border-radius:50%;border:2px solid var(--bad);background:var(--bad)}
+.pip.off{background:transparent;opacity:.55}
+.progress{display:flex;gap:6px;margin-block:14px 16px}
+.seg{flex:1;height:8px;border-radius:4px;background:var(--line)}
+.seg.ok{background:var(--good)}
+.seg.bad{background:var(--bad)}
+.seg.cur{background:var(--accent)}
+.play-grid{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);gap:16px;align-items:start}
+.scene-panel{padding:12px}
+.scene-panel .stage{border-radius:8px;background:var(--surface2);border:1px solid var(--line)}
+.scene-foot{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;justify-content:space-between;margin-top:10px}
+.legend{display:flex;gap:12px;align-items:center;font-size:.9rem;color:var(--muted)}
+.lg{display:inline-flex;align-items:center;gap:6px}
+.lg i{width:18px;height:4px;border-radius:2px;display:inline-block}
+.lg span{font-family:var(--f-mono);font-weight:600;color:var(--fg)}
+.view-btns{display:flex;gap:8px}
+.drag-note{color:var(--muted);font-size:.85rem;margin-top:8px}
+.q-kicker{color:var(--muted);font-size:.9rem;font-weight:500}
+.q-text{font-size:1.3rem;line-height:1.85;margin-block:6px 16px}
+.options{display:grid;gap:10px}
+.opt{display:flex;align-items:center;gap:12px;width:100%;text-align:start;padding:11px 14px;min-height:52px;background:var(--surface2);border:1.5px solid var(--line);border-radius:8px;cursor:pointer;transition:border-color .15s,background .15s}
+.opt:hover:not(:disabled){border-color:var(--accent)}
+.opt:disabled{cursor:default}
+.badge{flex:none;width:32px;height:32px;display:grid;place-items:center;border:1.5px solid var(--line);border-radius:50%;font-family:var(--f-display);font-weight:700;background:var(--surface)}
+.opt-body{min-width:0;overflow-wrap:anywhere;font-size:1.05rem}
+.mark{margin-inline-start:auto;font-weight:700;font-size:1.1rem}
+.opt.correct{background:var(--good-bg);border-color:var(--good)}
+.opt.correct .mark{color:var(--good)}
+.opt.wrong{background:var(--bad-bg);border-color:var(--bad)}
+.opt.wrong .mark{color:var(--bad)}
+.q-actions{margin-top:14px;display:flex;gap:10px;align-items:center}
+.hint{margin-top:12px;padding:10px 14px;border:1.5px dashed var(--accent);border-radius:8px;background:var(--accent-soft)}
+.feedback{margin-top:16px;padding:14px 16px;border-radius:10px;border:1.5px solid var(--line);background:var(--surface2)}
+.feedback.ok{border-color:var(--good)}
+.feedback.bad{border-color:var(--bad)}
+.fb-title{font-family:var(--f-display);font-weight:700;font-size:1.15rem}
+.feedback.ok .fb-title{color:var(--good)}
+.feedback.bad .fb-title{color:var(--bad)}
+.fb-text{margin-top:4px}
+.feedback .btn{margin-top:12px}
+
+/* end */
+.end-card{max-width:560px;margin:24px auto 0;text-align:center;padding:30px 22px}
+.stars{display:flex;justify-content:center;gap:8px;margin-bottom:10px}
+.stars svg{width:44px;height:44px}
+.end-card h2{font-size:2rem}
+.end-sub{color:var(--muted);margin-top:4px}
+.end-stats{display:flex;justify-content:center;gap:28px;margin:20px 0}
+.end-stats div{display:grid;gap:0}
+.end-stats b{font:600 2rem/1.2 var(--f-mono)}
+.end-stats span{color:var(--muted);font-size:.9rem}
+.end-actions{display:flex;flex-wrap:wrap;gap:10px;justify-content:center}
+
+/* explore */
+.sliders{display:grid;gap:14px;margin-block:14px 18px}
+.slider-row{display:grid;grid-template-columns:auto minmax(0,1fr) 2.6em;gap:12px;align-items:center;direction:ltr}
+.slider-row label{font:600 1.2rem var(--f-mono);width:1.2em}
+.slider-row output{font:600 1.1rem var(--f-mono);text-align:end}
+.slider-row input{width:100%;min-width:0;height:32px;margin:0}
+.slider-row.sx label{color:var(--x)} .slider-row.sy label{color:var(--y)} .slider-row.sz label{color:var(--z)}
+.slider-row.sx input{accent-color:var(--x)} .slider-row.sy input{accent-color:var(--y)} .slider-row.sz input{accent-color:var(--z)}
+.facts{display:grid;gap:0;margin:0;border-top:1px solid var(--line)}
+.facts div{display:flex;justify-content:space-between;gap:12px;padding:9px 0;border-bottom:1px solid var(--line)}
+.facts dt{color:var(--muted)}
+.facts dd{margin:0;font-weight:500;text-align:end;min-width:0}
+
+@media (max-width:860px){
+  .hero{grid-template-columns:minmax(0,1fr)}
+  .play-grid{grid-template-columns:minmax(0,1fr)}
+  .stage{aspect-ratio:1/.85}
+}
+@media (max-width:560px){
+  .level{grid-template-columns:auto minmax(0,1fr)}
+  .level .btn{grid-column:1/-1}
+  .q-text{font-size:1.15rem}
+  .tb-stats{gap:12px}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+
+
+<div class="app" dir="rtl" lang="ar">
+
+  <!-- القائمة الرئيسية -->
+  <section id="menu">
+    <div class="hero">
+      <div>
+        <p class="eyebrow">درس الإحداثيات الديكارتية في الفضاء</p>
+        <h1>مختبر الإحداثيات</h1>
+        <p class="lead">أسئلة عن النقاط والمحاور والمستويات والمسافات في الفضاء ثلاثي الأبعاد. اسحب المجسم لتدويره وانظر إلى موضع النقطة من كل جهة قبل أن تجيب.</p>
+        <ul class="rules">
+          <li>10 أسئلة في كل جولة</li>
+          <li>3 محاولات خاطئة كحد أقصى</li>
+          <li>نقاط إضافية للإجابات المتتالية</li>
+        </ul>
+      </div>
+      <div class="stage"><canvas id="cv-hero" tabindex="0" aria-label="مجسم محاور الإحداثيات الثلاثة مع نقطة"></canvas></div>
+    </div>
+
+    <h2 class="section-title">اختر المستوى</h2>
+    <ol id="levels" class="levels"></ol>
+
+    <div class="level explore-row">
+      <div class="lv-no free">3D</div>
+      <div class="lv-body">
+        <h3>استكشاف حر</h3>
+        <p>حرّك نقطة بالمنزلقات وراقب إحداثياتها وبعدها ومساقطها فوراً.</p>
+      </div>
+      <button class="btn" id="btn-explore">افتح الاستكشاف</button>
+    </div>
+  </section>
+
+  <!-- اللعب -->
+  <section id="play" hidden>
+    <div class="topbar">
+      <button class="btn ghost small" id="btn-quit">القائمة الرئيسية</button>
+      <div class="tb-level" id="tb-level"></div>
+      <div class="tb-stats">
+        <span>النقاط <b id="st-score">0</b></span>
+        <span class="lives" id="st-lives" role="img" aria-label="المحاولات المتبقية"></span>
+      </div>
+    </div>
+    <div class="progress" id="progress" role="img" aria-label="تقدم الجولة"></div>
+
+    <div class="play-grid">
+      <div class="panel scene-panel">
+        <div class="stage"><canvas id="cv-play" tabindex="0" aria-label="مجسم الإحداثيات ثلاثي الأبعاد للسؤال"></canvas></div>
+        <div class="scene-foot">
+          <div class="legend">
+            <span class="lg"><i style="background:var(--x)"></i><span>x</span></span>
+            <span class="lg"><i style="background:var(--y)"></i><span>y</span></span>
+            <span class="lg"><i style="background:var(--z)"></i><span>z</span></span>
+          </div>
+          <div class="view-btns">
+            <button class="btn small" id="btn-view-reset">الوضع الافتراضي</button>
+            <button class="btn small" id="btn-view-top">منظر علوي</button>
+          </div>
+        </div>
+        <p class="drag-note">اسحب المجسم لتدويره. الخطوط المتقطعة تبيّن الصندوق الذي يصل الأصل بالنقطة.</p>
+      </div>
+
+      <div class="panel">
+        <p class="q-kicker" id="q-kicker"></p>
+        <h2 class="q-text" id="q-text"></h2>
+        <div class="options" id="options" role="group" aria-label="الخيارات"></div>
+        <div class="q-actions"><button class="btn small" id="btn-hint">تلميح (تُخصم 5 نقاط)</button></div>
+        <p class="hint" id="hint" hidden></p>
+        <div class="feedback" id="feedback" hidden aria-live="polite">
+          <p class="fb-title" id="fb-title"></p>
+          <p class="fb-text" id="fb-text"></p>
+          <button class="btn primary" id="btn-next">السؤال التالي</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- النتيجة -->
+  <section id="end" hidden>
+    <div class="panel end-card">
+      <div class="stars" id="end-stars"></div>
+      <h2 id="end-title"></h2>
+      <p class="end-sub" id="end-sub"></p>
+      <div class="end-stats">
+        <div><b id="end-score">0</b><span>النقاط</span></div>
+        <div><b id="end-correct">0</b><span>إجابات صحيحة</span></div>
+      </div>
+      <div class="end-actions">
+        <button class="btn primary" id="btn-again">أعد المستوى</button>
+        <button class="btn" id="btn-nextlevel">المستوى التالي</button>
+        <button class="btn ghost" id="btn-home">القائمة الرئيسية</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- الاستكشاف -->
+  <section id="explore" hidden>
+    <div class="topbar">
+      <button class="btn ghost small" id="btn-exit-explore">القائمة الرئيسية</button>
+      <div class="tb-level">استكشاف حر</div>
+      <span></span>
+    </div>
+    <div class="play-grid" style="margin-top:14px">
+      <div class="panel scene-panel">
+        <div class="stage"><canvas id="cv-explore" tabindex="0" aria-label="مجسم الإحداثيات مع النقطة P"></canvas></div>
+        <p class="drag-note">اسحب المجسم لتدويره.</p>
+      </div>
+      <div class="panel">
+        <h2 style="font-size:1.3rem">حرّك النقطة P</h2>
+        <div class="sliders">
+          <div class="slider-row sx"><label for="sx">x</label><input type="range" id="sx" min="-6" max="6" step="1" value="3"><output id="ox">3</output></div>
+          <div class="slider-row sy"><label for="sy">y</label><input type="range" id="sy" min="-6" max="6" step="1" value="2"><output id="oy">2</output></div>
+          <div class="slider-row sz"><label for="sz">z</label><input type="range" id="sz" min="-6" max="6" step="1" value="4"><output id="oz">4</output></div>
+        </div>
+        <dl class="facts" id="facts"></dl>
+      </div>
+    </div>
+  </section>
+</div>
+
+<script>
+(function(){
+'use strict';
+
+/*GEN-START*/
+const rnd=(a,b)=>a+Math.floor(Math.random()*(b-a+1));
+const pick=a=>a[Math.floor(Math.random()*a.length)];
+const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
+const nz=(a,b)=>{let v;do v=rnd(a,b);while(v===0);return v};
+const sgn=()=>Math.random()<.5?-1:1;
+const fmtN=n=>n<0?'−'+(-n):String(n);
+const fp=p=>'('+p.map(fmtN).join(', ')+')';
+const L=s=>'<bdi dir="ltr" class="ltr">'+s+'</bdi>';
+const P=p=>L(fp(p));
+const N=n=>L(fmtN(n));
+const sw=v=>v>0?'موجبة':'سالبة';
+const J=JSON.stringify;
+
+function makeOpts(correct,tier1,fmt,filler){
+  const seen=new Set([J(correct)]);
+  const out=[];
+  const add=c=>{const k=J(c);if(!seen.has(k)&&out.length<3){seen.add(k);out.push(c)}};
+  shuffle(tier1).forEach(add);
+  if(out.length<3&&filler)shuffle(filler(correct)).forEach(add);
+  const all=shuffle([correct].concat(out));
+  return {options:all.map(fmt),answer:all.findIndex(o=>J(o)===J(correct))};
+}
+function ptCands(p){
+  const out=[];
+  for(let m=1;m<8;m++)out.push(p.map((v,i)=>(m&(1<<i))?-v:v));
+  out.push([p[1],p[0],p[2]],[p[0],p[2],p[1]],[p[2],p[1],p[0]]);
+  return out;
+}
+function ptFill(p){
+  const out=[];
+  for(let i=0;i<3;i++)for(const d of [1,-1,2,-2]){const q=p.slice();q[i]+=d;out.push(q)}
+  return out;
+}
+function numFill(n){return [n+1,n-1,n+2,n-2,n+3,n+4].filter(v=>v>0)}
+const AX={x:'محور السينات (x)',y:'محور الصادات (y)',z:'محور الارتفاعات (z)'};
+const PL={xy:'المستوى xy',xz:'المستوى xz',yz:'المستوى yz'};
+
+/* المستوى 1 */
+function g1read(){
+  const p=[nz(-4,4),nz(-4,4),nz(-4,4)];
+  const o=makeOpts(p,ptCands(p),P,ptFill);
+  return Object.assign({
+    kind:'قراءة نقطة من المجسم',
+    prompt:'ما إحداثيات النقطة A كما تظهر في المجسم؟',
+    scene:{points:[{p:p,label:'A',box:true}]},
+    hint:'ابدأ من الأصل O. الإحداثي x حركة موازية لمحور x، ثم y موازية لمحور y، ثم z صعوداً أو نزولاً. الاتجاه المعاكس لسهم المحور يعني إشارة سالبة.',
+    explain:'إحداثيات A هي '+P(p)+': '+L('x = '+fmtN(p[0]))+' و'+L('y = '+fmtN(p[1]))+' و'+L('z = '+fmtN(p[2]))+'. الإشارة الموجبة باتجاه سهم المحور والسالبة عكسه.'
+  },o);
+}
+function g1loc(){
+  const t=pick(['x','y','z','xy','xz','yz']);
+  const test={x:p=>p[1]===0&&p[2]===0,y:p=>p[0]===0&&p[2]===0,z:p=>p[0]===0&&p[1]===0,xy:p=>p[2]===0,xz:p=>p[1]===0,yz:p=>p[0]===0}[t];
+  let correct;
+  if(t.length===1){correct=[0,0,0];correct['xyz'.indexOf(t)]=nz(-5,5)}
+  else{correct=[nz(-5,5),nz(-5,5),nz(-5,5)];correct['xyz'.indexOf(['x','y','z'].find(c=>t.indexOf(c)<0))]=0}
+  const dist=[];const seen=new Set([J(correct)]);let guard=0;
+  while(dist.length<3&&guard++<500){
+    const q=[0,1,2].map(()=>Math.random()<.4?0:nz(-5,5));
+    if(test(q)||(q[0]===0&&q[1]===0&&q[2]===0))continue;
+    if(seen.has(J(q)))continue;seen.add(J(q));dist.push(q);
+  }
+  const o=makeOpts(correct,dist,P,ptFill);
+  const rule={x:'كل نقطة على محور السينات إحداثياها y وz صفر، أي على الصورة (a, 0, 0).',y:'كل نقطة على محور الصادات إحداثياها x وz صفر، أي على الصورة (0, b, 0).',z:'كل نقطة على محور الارتفاعات إحداثياها x وy صفر، أي على الصورة (0, 0, c).',xy:'نقاط المستوى xy إحداثي z لها يساوي صفراً: (a, b, 0).',xz:'نقاط المستوى xz إحداثي y لها يساوي صفراً: (a, 0, c).',yz:'نقاط المستوى yz إحداثي x لها يساوي صفراً: (0, b, c).'}[t];
+  return Object.assign({
+    kind:t.length===1?'نقاط على المحاور':'نقاط في المستويات',
+    prompt:t.length===1?'أي النقاط الآتية تقع على '+AX[t]+'؟':'أي النقاط الآتية تقع في '+PL[t]+'؟',
+    scene:t.length===1?{hl:{axis:t}}:{hl:{plane:t}},
+    hint:'فكّر: أي الإحداثيات تساوي صفراً لكل نقطة تقع على '+(t.length===1?'هذا المحور':'هذا المستوى')+'؟',
+    explain:rule+' والنقطة الصحيحة هي '+P(correct)+'.'
+  },o);
+}
+function gplane(){
+  const p=[nz(-5,5),nz(-5,5),nz(-5,5)];
+  const t=pick(['xy','xz','yz']);
+  const idx={xy:2,xz:1,yz:0}[t];const nm='xyz'[idx];
+  const ans=Math.abs(p[idx]);
+  const tier=[Math.abs(p[0]),Math.abs(p[1]),Math.abs(p[2])];
+  if(p[idx]<0)tier.push(p[idx]);
+  const o=makeOpts(ans,tier,N,numFill);
+  return Object.assign({
+    kind:'البعد عن مستوى الإحداثيات',
+    prompt:'ما بعد النقطة P '+P(p)+' عن '+PL[t]+'؟',
+    scene:{points:[{p:p,label:'P',box:true}],hl:{plane:t}},
+    hint:'المستوى '+t+' عمودي على محور '+nm+'، فالبعد عنه يُقاس على هذا المحور.',
+    explain:'البعد عن '+PL[t]+' يساوي القيمة المطلقة للإحداثي '+nm+': '+L('|'+fmtN(p[idx])+'| = '+ans)+'. والبعد لا يكون سالباً.'
+  },o);
+}
+
+/* المستوى 2 */
+const SIGNS=[];for(let m=0;m<8;m++)SIGNS.push([0,1,2].map(i=>(m&(1<<i))?-1:1));
+function g2oct(){
+  const s=pick(SIGNS);
+  const p=s.map(v=>v*rnd(1,5));
+  if(Math.random()<.5){
+    const txt=q=>L('x '+(q[0]>0?'>':'<')+' 0, y '+(q[1]>0?'>':'<')+' 0, z '+(q[2]>0?'>':'<')+' 0');
+    const others=SIGNS.filter(q=>J(q)!==J(s));
+    const o=makeOpts(s,others,txt,null);
+    return Object.assign({
+      kind:'الأثمان',
+      prompt:'في أي ثمن تقع النقطة A ؟ اختر الإشارات الصحيحة لإحداثياتها.',
+      scene:{points:[{p:p,label:'A',box:true}]},
+      hint:'انظر إلى جهة النقطة بالنسبة لكل مستوى إحداثي: خلف أو أمام مستوى yz، يمين أو يسار مستوى xz، فوق أو تحت مستوى xy.',
+      explain:'إحداثيات A هي '+P(p)+'، وإشاراتها: '+L('x '+(s[0]>0?'>':'<')+' 0')+' و'+L('y '+(s[1]>0?'>':'<')+' 0')+' و'+L('z '+(s[2]>0?'>':'<')+' 0')+'.'
+    },o);
+  }
+  const flips=[0,1,2].map(i=>{const q=p.slice();q[i]=-q[i];return q});
+  const o=makeOpts(p,flips,P,ptFill);
+  return Object.assign({
+    kind:'الأثمان',
+    prompt:'أي النقاط الآتية تقع في الثمن الذي تكون فيه x '+sw(p[0])+' وy '+sw(p[1])+' وz '+sw(p[2])+'؟',
+    scene:{},
+    hint:'افحص إشارة كل إحداثي في كل خيار وطابقها مع المطلوب.',
+    explain:'المطلوب: '+L('x '+(s[0]>0?'>':'<')+' 0, y '+(s[1]>0?'>':'<')+' 0, z '+(s[2]>0?'>':'<')+' 0')+'، والنقطة التي تحقق ذلك هي '+P(p)+'.'
+  },o);
+}
+const PROJ=[
+  {l:'المستوى xy',f:p=>[p[0],p[1],0],why:'نجعل z = 0 ونُبقي x وy كما هما.'},
+  {l:'المستوى xz',f:p=>[p[0],0,p[2]],why:'نجعل y = 0 ونُبقي x وz كما هما.'},
+  {l:'المستوى yz',f:p=>[0,p[1],p[2]],why:'نجعل x = 0 ونُبقي y وz كما هما.'},
+  {l:'محور السينات (x)',f:p=>[p[0],0,0],why:'نُبقي x ونجعل y وz صفراً.'},
+  {l:'محور الصادات (y)',f:p=>[0,p[1],0],why:'نُبقي y ونجعل x وz صفراً.'},
+  {l:'محور الارتفاعات (z)',f:p=>[0,0,p[2]],why:'نُبقي z ونجعل x وy صفراً.'}
+];
+function g2proj(){
+  const p=[nz(-5,5),nz(-5,5),nz(-5,5)];
+  const r=pick(PROJ);const ans=r.f(p);
+  const others=PROJ.filter(q=>q!==r).map(q=>q.f(p)).concat([p]);
+  const o=makeOpts(ans,others,P,ptFill);
+  return Object.assign({
+    kind:'المسقط',
+    prompt:'ما مسقط النقطة P '+P(p)+' على '+r.l+'؟',
+    scene:{points:[{p:p,label:'P',box:true}]},
+    hint:'المسقط هو أقرب نقطة إلى P على ذلك '+(r.l.indexOf('محور')===0?'المحور':'المستوى')+'، أي موضع قدم العمود النازل منها.',
+    explain:r.why+' فيكون المسقط '+P(ans)+'.'
+  },o);
+}
+const REFL=[
+  {l:'في المستوى xy',f:p=>[p[0],p[1],-p[2]],why:'تتغير إشارة z فقط.'},
+  {l:'في المستوى xz',f:p=>[p[0],-p[1],p[2]],why:'تتغير إشارة y فقط.'},
+  {l:'في المستوى yz',f:p=>[-p[0],p[1],p[2]],why:'تتغير إشارة x فقط.'},
+  {l:'في نقطة الأصل',f:p=>p.map(v=>-v),why:'تتغير إشارات الإحداثيات الثلاثة.'},
+  {l:'حول محور السينات (x)',f:p=>[p[0],-p[1],-p[2]],why:'تبقى x كما هي وتتغير إشارتا y وz.'},
+  {l:'حول محور الصادات (y)',f:p=>[-p[0],p[1],-p[2]],why:'تبقى y كما هي وتتغير إشارتا x وz.'},
+  {l:'حول محور الارتفاعات (z)',f:p=>[-p[0],-p[1],p[2]],why:'تبقى z كما هي وتتغير إشارتا x وy.'}
+];
+function g2refl(){
+  const p=[nz(-5,5),nz(-5,5),nz(-5,5)];
+  const r=pick(REFL);const ans=r.f(p);
+  const others=REFL.filter(q=>q!==r).map(q=>q.f(p));
+  const o=makeOpts(ans,others,P,ptFill);
+  return Object.assign({
+    kind:'الانعكاس',
+    prompt:'ما صورة النقطة A '+P(p)+' بالانعكاس '+r.l+'؟',
+    scene:{points:[{p:p,label:'A',box:true}]},
+    hint:'الانعكاس في مستوى يعكس إشارة الإحداثي العمودي عليه فقط. حول محور تتغير إشارتا الإحداثيين الآخرين. في الأصل تتغير الإشارات كلها.',
+    explain:r.why+' فتكون الصورة '+P(ans)+'.'
+  },o);
+}
+
+/* المستوى 3 */
+const QUADS=[[1,2,2,3],[2,3,6,7],[2,4,4,6],[4,4,7,9],[1,4,8,9],[6,6,7,11]];
+function quadVec(){const q=pick(QUADS);return {v:shuffle(q.slice(0,3)).map(x=>x*sgn()),d:q[3]}}
+function g3orig(){
+  const {v:p,d}=quadVec();
+  const sum=Math.abs(p[0])+Math.abs(p[1])+Math.abs(p[2]);
+  const o=makeOpts(d,[sum,d*d],N,numFill);
+  const sq=p.map(x=>x*x);
+  return Object.assign({
+    kind:'البعد عن نقطة الأصل',
+    prompt:'ما بعد النقطة A '+P(p)+' عن نقطة الأصل O؟',
+    scene:{points:[{p:p,label:'A',box:true}],segs:[{a:[0,0,0],b:p}]},
+    hint:'بعد النقطة عن الأصل هو طول قطر الصندوق: الجذر التربيعي لمجموع مربعات الإحداثيات.',
+    explain:L('d = √(x² + y² + z²) = √('+sq[0]+' + '+sq[1]+' + '+sq[2]+') = √'+(sq[0]+sq[1]+sq[2])+' = '+d)
+  },o);
+}
+function g3dist(){
+  const {v,d}=quadVec();
+  const A=v.map(dv=>rnd(Math.max(-6,-6-dv),Math.min(6,6-dv)));
+  const B=A.map((a,i)=>a+v[i]);
+  const sum=Math.abs(v[0])+Math.abs(v[1])+Math.abs(v[2]);
+  const o=makeOpts(d,[sum,d*d],N,numFill);
+  const sq=v.map(x=>x*x);
+  return Object.assign({
+    kind:'المسافة بين نقطتين',
+    prompt:'ما المسافة بين النقطتين A '+P(A)+' وB '+P(B)+'؟',
+    scene:{points:[{p:A,label:'A',drop:true},{p:B,label:'B',drop:true}],segs:[{a:A,b:B}]},
+    hint:'احسب فروق الإحداثيات Δx وΔy وΔz، ثم طبّق قانون المسافة.',
+    explain:L('Δx = '+fmtN(v[0])+', Δy = '+fmtN(v[1])+', Δz = '+fmtN(v[2]))+'، فتكون '+L('d = √('+sq[0]+' + '+sq[1]+' + '+sq[2]+') = √'+(sq[0]+sq[1]+sq[2])+' = '+d)
+  },o);
+}
+function g3mid(){
+  let A,B;
+  do{
+    A=[rnd(-6,6),rnd(-6,6),rnd(-6,6)];
+    B=A.map(a=>Math.max(-6,Math.min(6,a+2*rnd(-3,3))));
+    B=B.map((b,i)=>((b-A[i])%2===0)?b:b-1);
+  }while(J(A)===J(B));
+  const M=A.map((a,i)=>(a+B[i])/2);
+  const sum=A.map((a,i)=>a+B[i]);
+  const half=A.map((a,i)=>(B[i]-a)/2);
+  const o=makeOpts(M,[sum,half],P,ptFill);
+  return Object.assign({
+    kind:'منتصف القطعة',
+    prompt:'ما إحداثيات منتصف القطعة AB حيث A '+P(A)+' وB '+P(B)+'؟',
+    scene:{points:[{p:A,label:'A',drop:true},{p:B,label:'B',drop:true}],segs:[{a:A,b:B}]},
+    hint:'إحداثيات المنتصف هي المتوسط الحسابي لإحداثيات الطرفين، كل إحداثي على حدة.',
+    explain:L('M = ((x₁+x₂)/2, (y₁+y₂)/2, (z₁+z₂)/2)')+' = '+P(M)+'.'
+  },o);
+}
+
+/* المستوى 4 */
+function g4mid(){
+  let A,B;
+  do{
+    A=[rnd(-6,6),rnd(-6,6),rnd(-6,6)];
+    B=A.map(a=>Math.max(-6,Math.min(6,a+2*rnd(-3,3))));
+    B=B.map((b,i)=>((b-A[i])%2===0)?b:b-1);
+  }while(J(A)===J(B));
+  const M=A.map((a,i)=>(a+B[i])/2);
+  const t1=[M.map((m,i)=>m-A[i]),M.map((m,i)=>m+A[i]),M.map((m,i)=>2*A[i]-m),B.map(b=>-b)];
+  const o=makeOpts(B,t1,P,ptFill);
+  return Object.assign({
+    kind:'إيجاد أحد الطرفين',
+    prompt:'النقطة M '+P(M)+' هي منتصف القطعة AB، وإحداثيات A هي '+P(A)+'. ما إحداثيات B؟',
+    scene:{points:[{p:A,label:'A',drop:true},{p:M,label:'M',drop:true}],segs:[{a:A,b:M}]},
+    hint:'من M = (A + B)/2 استخرج B بدلالة M وA.',
+    explain:L('B = 2M − A')+' = '+P(B)+'. تحقق: منتصف A وB هو M.'
+  },o);
+}
+function g4near(){
+  const far=Math.random()<.5;
+  let pts,ds;
+  for(let g=0;g<500;g++){
+    pts=[0,1,2,3].map(()=>[rnd(-5,5),rnd(-5,5),rnd(-5,5)]);
+    ds=pts.map(p=>p[0]*p[0]+p[1]*p[1]+p[2]*p[2]);
+    if(new Set(ds).size===4&&new Set(pts.map(J)).size===4)break;
+  }
+  const best=far?Math.max.apply(null,ds):Math.min.apply(null,ds);
+  const letters=['A','B','C','D'];
+  return {
+    kind:'مقارنة المسافات',
+    prompt:'أي النقاط الآتية هي '+(far?'الأبعد عن':'الأقرب إلى')+' نقطة الأصل؟',
+    scene:{points:pts.map((p,i)=>({p:p,label:letters[i],drop:true}))},
+    options:pts.map(p=>P(p)),
+    badges:letters,
+    answer:ds.indexOf(best),
+    hint:'قارن قيم '+L('x² + y² + z²')+' لكل نقطة. لا حاجة لحساب الجذر عند المقارنة.',
+    explain:'مربع البعد عن الأصل: '+pts.map((p,i)=>L(letters[i]+': '+p.map(x=>x*x).join('+')+' = '+ds[i])).join('، ')+'. الأ'+(far?'بعد':'قرب')+' هي '+letters[ds.indexOf(best)]+'.'
+  };
+}
+function g4cube(){
+  const s=rnd(2,5);
+  if(Math.random()<.5){
+    const c=[s,s,s];
+    const t1=[[s,s,0],[s,0,s],[0,s,s],[2*s,2*s,2*s]];
+    const o=makeOpts(c,t1,P,null);
+    return Object.assign({
+      kind:'المكعب على المحاور',
+      prompt:'مكعب طول ضلعه '+s+'، أحد رؤوسه عند نقطة الأصل وأضلاعه على المحاور الموجبة. ما إحداثيات الرأس المقابل للأصل قطرياً؟',
+      scene:{cube:s},
+      hint:'الرأس المقابل للأصل يبتعد مسافة الضلع على كل محور من المحاور الثلاثة.',
+      explain:'الرأس المقابل قطرياً يقع على بعد '+s+' على كل محور، فهو '+P(c)+'.'
+    },o);
+  }
+  const f=t=>L(t);
+  const correct=s+'√3';
+  const o=makeOpts(correct,[s+'√2',String(3*s),String(s)],f,null);
+  return Object.assign({
+    kind:'المكعب على المحاور',
+    prompt:'مكعب طول ضلعه '+s+'، أحد رؤوسه عند نقطة الأصل وأضلاعه على المحاور الموجبة. ما طول قطر المكعب من الأصل إلى الرأس المقابل؟',
+    scene:{cube:s,segs:[{a:[0,0,0],b:[s,s,s]}]},
+    hint:'الرأس المقابل هو ('+L(s+', '+s+', '+s)+')، فاحسب بعده عن الأصل.',
+    explain:L('d = √('+s*s+' + '+s*s+' + '+s*s+') = √'+(3*s*s)+' = '+s+'√3')
+  },o);
+}
+function g4planes(){
+  const s=pick(SIGNS);
+  const p=s.map(v=>v*rnd(1,5));
+  const flips=[0,1,2].map(i=>{const q=p.slice();q[i]=-q[i];return q});
+  const o=makeOpts(p,flips,P,ptFill);
+  return Object.assign({
+    kind:'البعد عن المستويات والثمن',
+    prompt:'نقطة تبعد '+Math.abs(p[0])+' عن المستوى yz، و'+Math.abs(p[1])+' عن المستوى xz، و'+Math.abs(p[2])+' عن المستوى xy، وتقع في الثمن الذي تكون فيه x '+sw(p[0])+' وy '+sw(p[1])+' وz '+sw(p[2])+'. ما إحداثياتها؟',
+    scene:{},
+    hint:'البعد عن yz هو |x|، والبعد عن xz هو |y|، والبعد عن xy هو |z|. الإشارات تأتي من الثمن.',
+    explain:L('|x| = '+Math.abs(p[0])+', |y| = '+Math.abs(p[1])+', |z| = '+Math.abs(p[2]))+' مع الإشارات المطلوبة تعطي '+P(p)+'.'
+  },o);
+}
+/*GEN-END*/
+
+const LEVELS=[
+  {n:1,title:'المحاور والمستويات',desc:'قراءة إحداثيات نقطة من المجسم، وتحديد النقاط الواقعة على المحاور والمستويات، والبعد عن المستويات.',gens:[g1read,g1loc,gplane]},
+  {n:2,title:'الأثمان والمسقط والانعكاس',desc:'تحديد الثمن من إشارات الإحداثيات، ومسقط النقطة على المحاور والمستويات، وصورتها بالانعكاس.',gens:[g2oct,g2proj,g2refl]},
+  {n:3,title:'المسافة ومنتصف القطعة',desc:'قانون المسافة بين نقطتين، والبعد عن الأصل، وإحداثيات منتصف القطعة.',gens:[g3orig,g3dist,g3mid]},
+  {n:4,title:'تحدي المتمكنين',desc:'مسائل عكسية ومقارنة مسافات ومكعب على المحاور ومسائل تجمع الأفكار كلها.',gens:[g4mid,g4near,g4cube,g4planes,g3dist]}
+];
+const ROUND=10,LIVES=3,BADGES=['أ','ب','ج','د'];
+
+/* ---------- المجسم ثلاثي الأبعاد ---------- */
+const cssv=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const DEF_YAW=-2.1,DEF_PITCH=0.5;
+
+class Scene{
+  constructor(canvas){
+    this.c=canvas;this.ctx=canvas.getContext('2d');
+    this.yaw=DEF_YAW;this.pitch=DEF_PITCH;this.auto=false;this.w=0;this.h=0;this.dpr=1;
+    this.data={points:[],segs:[],cube:0,hl:null,R:5};
+    this.drag=null;
+    const c=canvas;
+    c.addEventListener('pointerdown',e=>{this.drag={x:e.clientX,y:e.clientY};this.auto=false;try{c.setPointerCapture(e.pointerId)}catch(_){}});
+    c.addEventListener('pointermove',e=>{
+      if(!this.drag)return;
+      const dx=e.clientX-this.drag.x,dy=e.clientY-this.drag.y;
+      this.drag.x=e.clientX;this.drag.y=e.clientY;
+      this.yaw+=dx*0.01;this.pitch=clamp(this.pitch+dy*0.008,-0.4,1.5);this.draw();
+    });
+    const end=()=>{this.drag=null};
+    c.addEventListener('pointerup',end);c.addEventListener('pointercancel',end);c.addEventListener('lostpointercapture',end);
+    c.addEventListener('keydown',e=>{
+      const k=e.key;let used=true;
+      if(k==='ArrowLeft')this.yaw-=0.12;else if(k==='ArrowRight')this.yaw+=0.12;
+      else if(k==='ArrowUp')this.pitch=clamp(this.pitch-0.1,-0.4,1.5);else if(k==='ArrowDown')this.pitch=clamp(this.pitch+0.1,-0.4,1.5);
+      else used=false;
+      if(used){e.preventDefault();this.auto=false;this.draw()}
+    });
+    new ResizeObserver(()=>{this.resize();this.draw()}).observe(c);
+  }
+  resize(){
+    const r=this.c.getBoundingClientRect();
+    if(!r.width||!r.height)return;
+    this.dpr=Math.min(2,window.devicePixelRatio||1);
+    this.w=r.width;this.h=r.height;
+    this.c.width=Math.round(r.width*this.dpr);this.c.height=Math.round(r.height*this.dpr);
+  }
+  setData(d,resetView){
+    const data={points:d.points||[],segs:d.segs||[],cube:d.cube||0,hl:d.hl||null};
+    let m=0;
+    data.points.forEach(p=>p.p.forEach(v=>m=Math.max(m,Math.abs(v))));
+    data.segs.forEach(s=>s.a.concat(s.b).forEach(v=>m=Math.max(m,Math.abs(v))));
+    m=Math.max(m,data.cube);
+    data.R=Math.max(5,Math.ceil(m)+1);
+    this.data=data;
+    if(resetView){this.yaw=DEF_YAW;this.pitch=DEF_PITCH}
+    this.draw();
+  }
+  proj(p){
+    const cy=Math.cos(this.yaw),sy=Math.sin(this.yaw),cp=Math.cos(this.pitch),sp=Math.sin(this.pitch);
+    const x1=p[0]*cy-p[1]*sy,y1=p[0]*sy+p[1]*cy;
+    const up=p[2]*cp+y1*sp;
+    return [this.cx+x1*this.s,this.cy-up*this.s];
+  }
+  draw(){
+    const w=this.w,h=this.h;if(!w||!h)return;
+    const ctx=this.ctx;
+    const C={x:cssv('--x'),y:cssv('--y'),z:cssv('--z'),fg:cssv('--fg'),muted:cssv('--muted'),line:cssv('--line'),accent:cssv('--accent'),surface:cssv('--surface')};
+    ctx.setTransform(this.dpr,0,0,this.dpr,0,0);
+    ctx.clearRect(0,0,w,h);
+    ctx.direction='ltr';ctx.lineCap='round';ctx.lineJoin='round';
+    const d=this.data,R=d.R;
+    this.s=Math.min(w,h)/(3.1*R);this.cx=w/2;this.cy=h/2+h*0.02;
+    const pr=p=>this.proj(p);
+    const seg=(a,b)=>{const A=pr(a),B=pr(b);ctx.beginPath();ctx.moveTo(A[0],A[1]);ctx.lineTo(B[0],B[1]);ctx.stroke()};
+    const dash=a=>ctx.setLineDash(a);
+    const step=R>8?2:1;
+
+    /* مستوى مميّز */
+    if(d.hl&&d.hl.plane){
+      const t=d.hl.plane;
+      const q={xy:[[-R,-R,0],[R,-R,0],[R,R,0],[-R,R,0]],xz:[[-R,0,-R],[R,0,-R],[R,0,R],[-R,0,R]],yz:[[0,-R,-R],[0,R,-R],[0,R,R],[0,-R,R]]}[t].map(pr);
+      ctx.beginPath();ctx.moveTo(q[0][0],q[0][1]);for(let i=1;i<4;i++)ctx.lineTo(q[i][0],q[i][1]);ctx.closePath();
+      ctx.globalAlpha=.16;ctx.fillStyle=C.accent;ctx.fill();
+      ctx.globalAlpha=.7;ctx.strokeStyle=C.accent;ctx.lineWidth=1.5;dash([6,4]);ctx.stroke();dash([]);ctx.globalAlpha=1;
+    }
+    /* شبكة المستوى xy */
+    ctx.strokeStyle=C.line;ctx.lineWidth=1;ctx.globalAlpha=.55;
+    for(let i=-R;i<=R;i+=step){seg([i,-R,0],[i,R,0]);seg([-R,i,0],[R,i,0])}
+    ctx.globalAlpha=1;
+
+    /* مكعب */
+    if(d.cube){
+      const s=d.cube,V=[];
+      for(let m=0;m<8;m++)V.push([(m&1)?s:0,(m&2)?s:0,(m&4)?s:0]);
+      ctx.strokeStyle=C.accent;ctx.lineWidth=1.8;ctx.globalAlpha=.85;
+      for(let a=0;a<8;a++)for(let b=a+1;b<8;b++){const x=a^b;if(x===1||x===2||x===4)seg(V[a],V[b])}
+      ctx.globalAlpha=1;
+    }
+    /* صناديق النقاط */
+    d.points.forEach(o=>{
+      const p=o.p;
+      if(o.box){
+        ctx.strokeStyle=C.accent;ctx.lineWidth=1.2;ctx.globalAlpha=.6;dash([4,4]);
+        const V=[];for(let m=0;m<8;m++)V.push([(m&1)?p[0]:0,(m&2)?p[1]:0,(m&4)?p[2]:0]);
+        for(let a=0;a<8;a++)for(let b=a+1;b<8;b++){const x=a^b;if(x===1||x===2||x===4)seg(V[a],V[b])}
+        dash([]);ctx.globalAlpha=1;
+      }else if(o.drop){
+        ctx.strokeStyle=C.muted;ctx.lineWidth=1.2;ctx.globalAlpha=.8;dash([3,4]);
+        seg(p,[p[0],p[1],0]);dash([]);ctx.globalAlpha=1;
+        const F=pr([p[0],p[1],0]);ctx.fillStyle=C.muted;ctx.beginPath();ctx.arc(F[0],F[1],2.5,0,6.283);ctx.fill();
+      }
+    });
+
+    /* المحاور */
+    const AXES=[['x',[1,0,0],C.x],['y',[0,1,0],C.y],['z',[0,0,1],C.z]];
+    AXES.forEach(([n,u,col])=>{
+      const at=k=>[u[0]*k,u[1]*k,u[2]*k];
+      ctx.strokeStyle=col;
+      ctx.lineWidth=1.6;ctx.globalAlpha=.55;dash([5,5]);seg(at(-R),at(0));dash([]);ctx.globalAlpha=1;
+      if(d.hl&&d.hl.axis===n){ctx.lineWidth=9;ctx.globalAlpha=.28;seg(at(-R),at(R));ctx.globalAlpha=1}
+      ctx.lineWidth=2.4;seg(at(0),at(R));
+      const A=pr(at(R-0.6)),B=pr(at(R+0.35));
+      const ang=Math.atan2(B[1]-A[1],B[0]-A[0]);
+      ctx.fillStyle=col;ctx.beginPath();ctx.moveTo(B[0],B[1]);
+      ctx.lineTo(B[0]-10*Math.cos(ang-0.4),B[1]-10*Math.sin(ang-0.4));
+      ctx.lineTo(B[0]-10*Math.cos(ang+0.4),B[1]-10*Math.sin(ang+0.4));ctx.closePath();ctx.fill();
+      const T=pr(at(R+1.1));
+      ctx.font='700 16px "IBM Plex Mono",monospace';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(n,T[0],T[1]);
+      ctx.font='500 10.5px "IBM Plex Mono",monospace';ctx.fillStyle=C.muted;
+      for(let i=-R;i<=R;i+=step){
+        if(i===0)continue;
+        const q=pr(at(i)),off=n==='z'?[-12,0]:[0,13];
+        ctx.strokeStyle=col;ctx.lineWidth=1.4;ctx.beginPath();ctx.arc(q[0],q[1],1.8,0,6.283);ctx.fillStyle=col;ctx.fill();
+        ctx.fillStyle=C.muted;ctx.fillText(fmtN(i),q[0]+off[0],q[1]+off[1]);
+      }
+    });
+    const O=pr([0,0,0]);
+    ctx.font='600 12px "IBM Plex Mono",monospace';ctx.fillStyle=C.fg;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('O',O[0]-11,O[1]+11);
+
+    /* قطع مستقيمة */
+    d.segs.forEach(sg=>{ctx.strokeStyle=C.accent;ctx.lineWidth=2.4;ctx.globalAlpha=.95;seg(sg.a,sg.b)});
+    ctx.globalAlpha=1;
+
+    /* النقاط */
+    d.points.forEach(o=>{
+      const p=o.p;
+      if(o.box){
+        [[p[0],0,0,C.x],[0,p[1],0,C.y],[0,0,p[2],C.z]].forEach(f=>{
+          if(f[0]===0&&f[1]===0&&f[2]===0)return;
+          const q=pr(f);ctx.fillStyle=f[3];ctx.beginPath();ctx.arc(q[0],q[1],3.6,0,6.283);ctx.fill();
+        });
+      }
+      const q=pr(p);
+      ctx.fillStyle=C.accent;ctx.strokeStyle=C.surface;ctx.lineWidth=2.5;
+      ctx.beginPath();ctx.arc(q[0],q[1],7,0,6.283);ctx.stroke();ctx.fill();
+      ctx.font='700 15px "IBM Plex Mono",monospace';ctx.textAlign='left';ctx.textBaseline='alphabetic';
+      const txt=o.label+(o.coords?' '+fp(p):'');
+      ctx.lineWidth=4;ctx.strokeStyle=C.surface;ctx.strokeText(txt,q[0]+11,q[1]-9);
+      ctx.fillStyle=C.fg;ctx.fillText(txt,q[0]+11,q[1]-9);
+    });
+  }
+}
+
+/* ---------- عناصر الصفحة ---------- */
+const $=id=>document.getElementById(id);
+const secs={menu:$('menu'),play:$('play'),end:$('end'),explore:$('explore')};
+function show(n){Object.keys(secs).forEach(k=>{secs[k].hidden=k!==n});window.scrollTo({top:0})}
+
+const heroScene=new Scene($('cv-hero'));
+const playScene=new Scene($('cv-play'));
+const exploreScene=new Scene($('cv-explore'));
+const scenes=[heroScene,playScene,exploreScene];
+const reduce=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+heroScene.auto=!reduce;
+heroScene.setData({points:[{p:[3,2,4],label:'A',box:true}]},true);
+(function loop(){
+  if(!secs.menu.hidden&&heroScene.auto){heroScene.yaw+=0.004;heroScene.draw()}
+  requestAnimationFrame(loop);
+})();
+
+const redrawAll=()=>scenes.forEach(s=>s.draw());
+try{window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',redrawAll)}catch(_){}
+new MutationObserver(redrawAll).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+if(document.fonts&&document.fonts.ready)document.fonts.ready.then(redrawAll);
+
+/* ---------- أفضل النتائج ---------- */
+let best={};
+try{best=JSON.parse(localStorage.getItem('coord-lab-best')||'{}')||{}}catch(_){best={}}
+function saveBest(){try{localStorage.setItem('coord-lab-best',JSON.stringify(best))}catch(_){}}
+
+function renderLevels(){
+  const ol=$('levels');ol.innerHTML='';
+  LEVELS.forEach(lv=>{
+    const b=best[lv.n];
+    const li=document.createElement('li');li.className='level';
+    li.innerHTML='<div class="lv-no">'+lv.n+'</div><div class="lv-body"><h3>'+lv.title+'</h3><p>'+lv.desc+'</p><p class="best">'+(b?'أفضل نتيجة: '+b.score+' نقطة، '+b.correct+' من '+ROUND+' صحيحة':'لم تلعب هذا المستوى بعد')+'</p></div>';
+    const btn=document.createElement('button');btn.className='btn primary';btn.textContent='ابدأ';btn.addEventListener('click',()=>startLevel(lv.n));
+    li.appendChild(btn);ol.appendChild(li);
+  });
+}
+
+/* ---------- الجولة ---------- */
+let G=null;
+function startLevel(n){
+  const lv=LEVELS.find(l=>l.n===n);
+  G={lv:lv,i:0,score:0,lives:LIVES,streak:0,correct:0,answered:0,res:[],last:null,q:null,done:false,hint:false};
+  $('tb-level').textContent='المستوى '+lv.n+': '+lv.title;
+  show('play');
+  nextQuestion();
+}
+function renderStats(){
+  $('st-score').textContent=G.score;
+  const l=$('st-lives');l.innerHTML='';
+  for(let i=0;i<LIVES;i++){const s=document.createElement('span');s.className='pip'+(i<G.lives?'':' off');l.appendChild(s)}
+  l.setAttribute('aria-label','المحاولات المتبقية: '+G.lives);
+  const pg=$('progress');pg.innerHTML='';
+  for(let i=0;i<ROUND;i++){
+    const s=document.createElement('i');
+    s.className='seg'+(G.res[i]===true?' ok':G.res[i]===false?' bad':(i===G.i&&!G.done?' cur':''));
+    pg.appendChild(s);
+  }
+  pg.setAttribute('aria-label','السؤال '+Math.min(G.i+1,ROUND)+' من '+ROUND);
+}
+function nextQuestion(){
+  const pool=G.lv.gens.filter(g=>g!==G.last);
+  const gen=pick(pool.length?pool:G.lv.gens);
+  G.last=gen;G.q=gen();G.done=false;G.hint=false;
+  renderStats();
+  const q=G.q;
+  $('q-kicker').textContent='السؤال '+(G.i+1)+' من '+ROUND+' · '+q.kind;
+  $('q-text').innerHTML=q.prompt;
+  const box=$('options');box.innerHTML='';
+  q.options.forEach((html,i)=>{
+    const b=document.createElement('button');b.type='button';b.className='opt';b.dataset.i=i;
+    b.innerHTML='<span class="badge">'+((q.badges||BADGES)[i])+'</span><span class="opt-body">'+html+'</span><span class="mark" aria-hidden="true"></span>';
+    b.addEventListener('click',()=>answer(i));
+    box.appendChild(b);
+  });
+  $('hint').hidden=true;$('feedback').hidden=true;
+  $('btn-hint').disabled=false;
+  playScene.setData(q.scene||{},true);
+}
+function answer(i){
+  if(G.done)return;
+  G.done=true;
+  const q=G.q,ok=i===q.answer;
+  let gain=0;
+  if(ok){gain=G.hint?5:10+Math.min(G.streak,5)*2;G.score+=gain;G.streak++;G.correct++}
+  else{G.lives--;G.streak=0}
+  G.answered++;G.res[G.i]=ok;
+  const opts=[...$('options').children];
+  opts.forEach((b,k)=>{
+    b.disabled=true;
+    if(k===q.answer){b.classList.add('correct');b.querySelector('.mark').textContent='✓'}
+    else if(k===i){b.classList.add('wrong');b.querySelector('.mark').textContent='✗'}
+  });
+  $('btn-hint').disabled=true;
+  const fb=$('feedback');fb.hidden=false;fb.className='feedback '+(ok?'ok':'bad');
+  $('fb-title').textContent=ok?'إجابة صحيحة (+'+gain+' نقطة)':'ليست الإجابة الصحيحة، والصحيح هو '+((q.badges||BADGES)[q.answer]);
+  $('fb-text').innerHTML=q.explain;
+  const last=G.i>=ROUND-1||G.lives<=0;
+  $('btn-next').textContent=last?'عرض النتيجة':'السؤال التالي';
+  renderStats();
+  $('btn-next').focus({preventScroll:true});
+  fb.scrollIntoView({block:'nearest',behavior:reduce?'auto':'smooth'});
+}
+function advance(){
+  if(G.i>=ROUND-1||G.lives<=0){finish();return}
+  G.i++;nextQuestion();
+}
+function finish(){
+  const c=G.correct,stars=c>=9?3:c>=7?2:c>=5?1:0;
+  const prev=best[G.lv.n];
+  if(!prev||G.score>prev.score){best[G.lv.n]={score:G.score,correct:c};saveBest()}
+  const st=$('end-stars');st.innerHTML='';
+  for(let i=0;i<3;i++){
+    st.insertAdjacentHTML('beforeend','<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5l2.9 6.1 6.6.8-4.9 4.6 1.3 6.6L12 17.3 6.1 20.6l1.3-6.6L2.5 9.4l6.6-.8z" fill="'+(i<stars?'var(--accent)':'none')+'" stroke="'+(i<stars?'var(--accent)':'var(--line)')+'" stroke-width="1.6" stroke-linejoin="round"/></svg>');
+  }
+  $('end-title').textContent=c>=9?'ممتاز':c>=7?'أحسنت':c>=5?'محاولة جيدة':'حاول مرة أخرى';
+  $('end-sub').textContent=G.lives<=0?'انتهت المحاولات في السؤال '+G.answered+'.':'أنهيت جولة المستوى '+G.lv.n+': '+G.lv.title+'.';
+  $('end-score').textContent=G.score;
+  $('end-correct').textContent=c+'/'+G.answered;
+  $('btn-nextlevel').hidden=G.lv.n>=LEVELS.length;
+  renderLevels();
+  show('end');
+}
+
+$('btn-next').addEventListener('click',advance);
+$('btn-hint').addEventListener('click',()=>{
+  if(G.done)return;
+  G.hint=true;$('hint').innerHTML='<b>تلميح:</b> '+G.q.hint;$('hint').hidden=false;$('btn-hint').disabled=true;
+});
+$('btn-quit').addEventListener('click',()=>{renderLevels();show('menu')});
+$('btn-home').addEventListener('click',()=>{renderLevels();show('menu')});
+$('btn-again').addEventListener('click',()=>startLevel(G.lv.n));
+$('btn-nextlevel').addEventListener('click',()=>startLevel(G.lv.n+1));
+$('btn-view-reset').addEventListener('click',()=>{playScene.yaw=DEF_YAW;playScene.pitch=DEF_PITCH;playScene.draw()});
+$('btn-view-top').addEventListener('click',()=>{playScene.pitch=1.4;playScene.draw()});
+document.addEventListener('keydown',e=>{
+  if(secs.play.hidden||!G||G.done)return;
+  const k=parseInt(e.key,10);
+  if(k>=1&&k<=G.q.options.length&&!e.ctrlKey&&!e.metaKey&&!e.altKey)answer(k-1);
+});
+
+/* ---------- الاستكشاف ---------- */
+function where(p){
+  const z=p.filter(v=>v===0).length;
+  if(z===3)return 'نقطة الأصل';
+  if(z===2)return 'على '+AX[p[0]!==0?'x':p[1]!==0?'y':'z'];
+  if(z===1)return 'في '+PL[p[0]===0?'yz':p[1]===0?'xz':'xy'];
+  return 'ثمن: x '+sw(p[0])+'، y '+sw(p[1])+'، z '+sw(p[2]);
+}
+function updateExplore(){
+  const p=['sx','sy','sz'].map(id=>parseInt($(id).value,10));
+  $('ox').textContent=fmtN(p[0]);$('oy').textContent=fmtN(p[1]);$('oz').textContent=fmtN(p[2]);
+  exploreScene.setData({points:[{p:p,label:'P',box:true,coords:true}],segs:[{a:[0,0,0],b:p}]},false);
+  const s=p[0]*p[0]+p[1]*p[1]+p[2]*p[2];
+  const root=Math.sqrt(s);
+  const dstr=Number.isInteger(root)?String(root):'√'+s+' ≈ '+root.toFixed(2);
+  const rows=[
+    ['الإحداثيات',P(p)],
+    ['موضع النقطة',where(p)],
+    ['البعد عن الأصل',L(dstr)],
+    ['البعد عن المستوى xy',L('|z| = '+Math.abs(p[2]))],
+    ['البعد عن المستوى xz',L('|y| = '+Math.abs(p[1]))],
+    ['البعد عن المستوى yz',L('|x| = '+Math.abs(p[0]))],
+    ['المسقط على المستوى xy',P([p[0],p[1],0])],
+    ['صورتها في نقطة الأصل',P(p.map(v=>v===0?0:-v))]
+  ];
+  $('facts').innerHTML=rows.map(r=>'<div><dt>'+r[0]+'</dt><dd>'+r[1]+'</dd></div>').join('');
+}
+['sx','sy','sz'].forEach(id=>$(id).addEventListener('input',updateExplore));
+$('btn-explore').addEventListener('click',()=>{show('explore');exploreScene.yaw=DEF_YAW;exploreScene.pitch=DEF_PITCH;updateExplore()});
+$('btn-exit-explore').addEventListener('click',()=>{renderLevels();show('menu')});
+
+renderLevels();
+})();
+</script>
+
+</body>
+</html>
